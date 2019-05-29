@@ -100,7 +100,7 @@ if( file_exists( $file ) ) {
 				submit_button( __( 'Update Template', 'codisto-linq' ), 'primary', 'submit', true );
 			} else {
 				?>
-				<p><em><?php echo wp_kses( __('You need to make this file writable before you can save your changes. See <a href="https://codex.wordpress.org/Changing_File_Permissions">the Codex</a> for more information.', 'codisto-linq' ) ); ?></em></p>
+				<p><em><?php echo wp_kses( __('You need to make this file writable before you can save your changes. See <a href="https://codex.wordpress.org/Changing_File_Permissions">the Codex</a> for more information.', 'codisto-linq' ),array('a' => array('href' => array(),'title' => array()),'br' => array(),'em' => array(),'strong' => array()) ); ?></em></p>
 				<?php
 			}
 
