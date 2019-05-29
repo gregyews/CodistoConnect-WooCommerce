@@ -220,6 +220,7 @@ final class CodistoConnect {
 
 		global $wp;
 		global $wpdb;
+		$wpdbsiteprefix = $wpdb->get_blog_prefix(get_current_blog_id());
 
 		error_reporting( E_ERROR | E_PARSE );
 		set_time_limit( 0 );
@@ -346,7 +347,7 @@ final class CodistoConnect {
 				}
 
 				if ( $tax_enabled ) {
-					$rates = $wpdb->get_results( "SELECT tax_rate_country AS country, tax_rate_state AS state, tax_rate AS rate, tax_rate_name AS name, tax_rate_class AS class, tax_rate_order AS sequence, tax_rate_priority AS priority FROM `{$wpdb->prefix}woocommerce_tax_rates` ORDER BY tax_rate_order" );
+					$rates = $wpdb->get_results( "SELECT tax_rate_country AS country, tax_rate_state AS state, tax_rate AS rate, tax_rate_name AS name, tax_rate_class AS class, tax_rate_order AS sequence, tax_rate_priority AS priority FROM `{$wpdbsiteprefix}woocommerce_tax_rates` ORDER BY tax_rate_order" );
 				} else {
 					$rates = array();
 				}
@@ -392,7 +393,7 @@ final class CodistoConnect {
 				$products = $wpdb->get_results(
 					$wpdb->prepare(
 						"SELECT id AS id ".
-						"FROM `{$wpdb->prefix}posts` AS P ".
+						"FROM `{$wpdbsiteprefix}posts` AS P ".
 						"WHERE post_type = 'product' ".
 						"		AND post_status IN ('publish', 'future', 'pending', 'private') ".
 						"	".( is_array( $product_ids ) ? 'AND id IN ('.implode( ',', $product_ids ).')' : '' )."".
@@ -405,7 +406,7 @@ final class CodistoConnect {
 				if ( ! is_array( $product_ids )
 					&& $page === 0
 				) {
-					$total_count = $wpdb->get_var( "SELECT COUNT(*) FROM `{$wpdb->prefix}posts` WHERE post_type = 'product' AND post_status IN ('publish', 'future', 'pending', 'private')" );
+					$total_count = $wpdb->get_var( "SELECT COUNT(*) FROM `{$wpdbsiteprefix}posts` WHERE post_type = 'product' AND post_status IN ('publish', 'future', 'pending', 'private')" );
 				}
 
 				$acf_installed = function_exists( 'acf' );
@@ -884,16 +885,16 @@ final class CodistoConnect {
 				$orders = $wpdb->get_results(
 					$wpdb->prepare(
 						"SELECT (".
-							"SELECT meta_value FROM `{$wpdb->prefix}postmeta` WHERE post_id = P.id AND meta_key = '_codisto_orderid' AND ".
+							"SELECT meta_value FROM `{$wpdbsiteprefix}postmeta` WHERE post_id = P.id AND meta_key = '_codisto_orderid' AND ".
 								"(".
-									"EXISTS ( SELECT 1 FROM `{$wpdb->prefix}postmeta` WHERE meta_key = '_codisto_merchantid' AND meta_value = %d AND post_id = P.id ) ".
-									"OR NOT EXISTS ( SELECT 1 FROM `{$wpdb->prefix}postmeta` WHERE meta_key = '_codisto_merchantid' AND post_id = P.id ) ".
+									"EXISTS ( SELECT 1 FROM `{$wpdbsiteprefix}postmeta` WHERE meta_key = '_codisto_merchantid' AND meta_value = %d AND post_id = P.id ) ".
+									"OR NOT EXISTS ( SELECT 1 FROM `{$wpdbsiteprefix}postmeta` WHERE meta_key = '_codisto_merchantid' AND post_id = P.id ) ".
 								")".
 							") AS id, ".
-						" ID AS post_id, post_status AS status FROM `{$wpdb->prefix}posts` AS P WHERE post_type = 'shop_order' AND ID IN (".
-							"SELECT post_id FROM `{$wpdb->prefix}postmeta` WHERE meta_key = '_codisto_orderid' AND (".
-								"EXISTS ( SELECT 1 FROM `{$wpdb->prefix}postmeta` WHERE meta_key = '_codisto_merchantid' AND meta_value = %d AND post_id = P.id ) ".
-								"OR NOT EXISTS ( SELECT 1 FROM `{$wpdb->prefix}postmeta` WHERE meta_key = '_codisto_merchantid' AND post_id = P.id ) ".
+						" ID AS post_id, post_status AS status FROM `{$wpdbsiteprefix}posts` AS P WHERE post_type = 'shop_order' AND ID IN (".
+							"SELECT post_id FROM `{$wpdbsiteprefix}postmeta` WHERE meta_key = '_codisto_orderid' AND (".
+								"EXISTS ( SELECT 1 FROM `{$wpdbsiteprefix}postmeta` WHERE meta_key = '_codisto_merchantid' AND meta_value = %d AND post_id = P.id ) ".
+								"OR NOT EXISTS ( SELECT 1 FROM `{$wpdbsiteprefix}postmeta` WHERE meta_key = '_codisto_merchantid' AND post_id = P.id ) ".
 							")".
 						") ORDER BY ID LIMIT %d, %d",
 						$merchantid,
@@ -906,7 +907,7 @@ final class CodistoConnect {
 				if ( $page == 0 ) {
 					$total_count = $wpdb->get_var(
 						$wpdb->prepare(
-							"SELECT COUNT(*) FROM `{$wpdb->prefix}posts` AS P WHERE post_type = 'shop_order' AND ID IN ( SELECT post_id FROM `{$wpdb->prefix}postmeta` WHERE meta_key = '_codisto_orderid' AND ( EXISTS ( SELECT 1 FROM `{$wpdb->prefix}postmeta` WHERE meta_key = '_codisto_merchantid' AND meta_value = %d AND post_id = P.id ) OR NOT EXISTS (SELECT 1 FROM `{$wpdb->prefix}postmeta` WHERE meta_key = '_codisto_merchantid' AND post_id = P.id )))",
+							"SELECT COUNT(*) FROM `{$wpdbsiteprefix}posts` AS P WHERE post_type = 'shop_order' AND ID IN ( SELECT post_id FROM `{$wpdbsiteprefix}postmeta` WHERE meta_key = '_codisto_orderid' AND ( EXISTS ( SELECT 1 FROM `{$wpdbsiteprefix}postmeta` WHERE meta_key = '_codisto_merchantid' AND meta_value = %d AND post_id = P.id ) OR NOT EXISTS (SELECT 1 FROM `{$wpdbsiteprefix}postmeta` WHERE meta_key = '_codisto_merchantid' AND post_id = P.id )))",
 							$merchantid
 						)
 					);
@@ -1326,11 +1327,11 @@ final class CodistoConnect {
 								'shipping_phone'		=> (string)$shipping_address->phone,
 							);
 
-					$order_id_sql = "SELECT ID FROM `{$wpdb->prefix}posts` AS P WHERE EXISTS (SELECT 1 FROM `{$wpdb->prefix}postmeta` " .
+					$order_id_sql = "SELECT ID FROM `{$wpdbsiteprefix}posts` AS P WHERE EXISTS (SELECT 1 FROM `{$wpdbsiteprefix}postmeta` " .
 					" WHERE meta_key = '_codisto_orderid' AND meta_value = %d AND post_id = P.ID ) " .
 					" AND (".
-						" EXISTS (SELECT 1 FROM `{$wpdb->prefix}postmeta` WHERE meta_key = '_codisto_merchantid' AND meta_value = %d AND post_id = P.ID)" .
-						" OR NOT EXISTS (SELECT 1 FROM `{$wpdb->prefix}postmeta` WHERE meta_key = '_codisto_merchantid' AND post_id = P.ID)"
+						" EXISTS (SELECT 1 FROM `{$wpdbsiteprefix}postmeta` WHERE meta_key = '_codisto_merchantid' AND meta_value = %d AND post_id = P.ID)" .
+						" OR NOT EXISTS (SELECT 1 FROM `{$wpdbsiteprefix}postmeta` WHERE meta_key = '_codisto_merchantid' AND post_id = P.ID)"
 					.")" .
 					" LIMIT 1";
 
@@ -1343,7 +1344,7 @@ final class CodistoConnect {
 
 					if ( $email ) {
 
-						$userid = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM `{$wpdb->prefix}users` WHERE user_email = %s", $email ) );
+						$userid = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM `{$wpdbsiteprefix}users` WHERE user_email = %s", $email ) );
 						if ( ! $userid &&  ! $order_id ) {
 							$username = $ebayusername;
 							if ( ! $username ) {
@@ -2019,7 +2020,7 @@ final class CodistoConnect {
 					);
 
 		$upload_dir = wp_upload_dir();
-		$certPath = $upload_dir['basedir'].'/codisto.crt';
+		$certPath = $upload_dir['basedir'].'/sites/'.get_current_blog_id().'/codisto.crt';
 		if ( file_exists( $certPath ) ) {
 			$httpOptions['sslcertificates'] = $certPath;
 		}
@@ -2537,16 +2538,16 @@ final class CodistoConnect {
 			$mainpage = 'codisto';
 			$type = 'ebay_tab';
 
-			if ( is_multisite() ) {
+			/*if ( is_multisite() ) {
 				$mainpage = 'codisto-multisite';
 				$type = 'multisite';
-			}
+			}*/
 
 			add_menu_page( __( 'Amazon & eBay', 'codisto-linq' ), __( 'Amazon & eBay', 'codisto-linq' ), 'edit_posts', $mainpage, array( $this, $type ), 'data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjE4cHgiIGhlaWdodD0iMThweCIgdmlld0JveD0iMCAwIDE3MjUuMDAwMDAwIDE3MjUuMDAwMDAwIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCBtZWV0Ij4gPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMC4wMDAwMDAsMTcyNS4wMDAwMDApIHNjYWxlKDAuMTAwMDAwLC0wLjEwMDAwMCkiIGZpbGw9IiMwMDAwMDAiIHN0cm9rZT0ibm9uZSI+PHBhdGggZD0iTTgzNDAgMTcyNDAgYy0yMTk1IC03MCAtNDI1MyAtOTYyIC01ODEwIC0yNTIwIC0xNDYzIC0xNDYyIC0yMzM3IC0zMzU5IC0yNTAwIC01NDI1IC0yOSAtMzYyIC0yOSAtOTcwIDAgLTEzMzUgMTM4IC0xNzc0IDgwNyAtMzQzOCAxOTMxIC00ODA1IDM1MyAtNDMxIDc4NCAtODYwIDEyMTQgLTEyMTEgMTM2MiAtMTExMiAzMDIzIC0xNzc3IDQ3ODAgLTE5MTQgMzczIC0yOSA5NjAgLTI5IDEzMzUgMCAxNzU3IDEzNSAzNDIyIDgwMSA0Nzg1IDE5MTQgNDU0IDM3MCA5MDYgODI3IDEyNzcgMTI4OCAxNDcgMTgyIDMzNiA0NDEgNDcxIDY0NSAxMTUgMTc0IDMxNyA1MDcgMzE3IDUyMyAwIDYgMyAxMCA4IDEwIDQgMCAxMiAxMCAxOCAyMyAxOCAzOSA4OSAxNzIgOTQgMTc3IDUgNSA3NiAxNDggMTY5IDMzOSAyMyA0NiA0MSA5MCA0MSA5OCAwIDcgNSAxMyAxMCAxMyA2IDAgMTAgNyAxMCAxNSAwIDggNCAyMyAxMCAzMyA1IDkgMjEgNDQgMzUgNzcgMTUgMzMgMzAgNjggMzYgNzcgNSAxMCA5IDIyIDkgMjggMCA1IDEyIDM1IDI2IDY3IDQ3IDEwNSA1NCAxMjQgNTQgMTM4IDAgOCAzIDE1IDggMTUgNCAwIDE1IDI4IDI2IDYzIDEwIDM0IDI0IDcxIDMxIDgyIDcgMTEgMTYgMzYgMjAgNTUgNCAxOSAxMSA0MCAxNSA0NSA0IDYgMTEgMjYgMTUgNDUgNCAxOSAxMSAzNyAxNCA0MCA3IDUgMjEgNTAgNTcgMTgwIDkgMzAgMTkgNjAgMjQgNjUgNCA2IDE1IDQ0IDI0IDg1IDEwIDQxIDIxIDc5IDI2IDg1IDExIDEzIDEzMSA1MzEgMTY5IDcyNSAxNjMgODQ5IDE5OCAxNzY0IDEwMCAyNjMwIC0yNjMgMjMyOSAtMTQ2OCA0NDQ2IC0zMzQ5IDU4ODIgLTczMyA1NTkgLTE1ODcgMTAxMiAtMjQ2NSAxMzA2IC03NjQgMjU3IC0xNjAwIDQxMSAtMjM2NSA0MzcgLTMyMSAxMSAtNDQyIDEyIC02NzAgNXogbS0yOTI1IC0yNjYwIGM2NzEgLTQxIDEyMTQgLTIzMCAxNjk0IC01OTAgNDg1IC0zNjQgODI1IC03NjYgMTY1NiAtMTk2NSAyNzggLTQwMSA5NjggLTE0NDggMTEyMCAtMTcwMCAyMTcgLTM1OCA0MjcgLTg0NCA1MTEgLTExNzUgMTE0IC00NTUgMTEyIC03OTYgLTEwIC0xNDEwIC0zOSAtMTk5IC0xNTAgLTU0MCAtMjQzIC03NDYgLTEyNCAtMjc2IC0yOTQgLTU0NSAtNDkyIC03NzcgLTQyIC00OSAtODggLTEwMiAtMTAyIC0xMTkgbC0yNSAtMzAgLTQxMyA2MjIgLTQxMiA2MjIgMzQgODIgYzU1IDEzMCAxMTggMzY3IDE1MyA1ODEgMjUgMTU1IDE1IDU0MCAtMjAgNzMxIC05MyA1MDkgLTI5NiA5MDcgLTEwMDcgMTk3NCAtNTU3IDgzNiAtMTAyMCAxNDU4IC0xMzUxIDE4MTMgLTQ0NyA0ODAgLTk2NSA3MDUgLTE1MzYgNjY3IC03NzEgLTUxIC0xNDM2IC00ODcgLTE3ODYgLTExNzAgLTk3IC0xODggLTE2MiAtMzg1IC0xODUgLTU2MyAtMjcgLTE5NCAtOSAtNTA2IDQwIC03MDIgMTA5IC00MzcgMzk0IC05NjIgMTA3NSAtMTk3MiA4MjQgLTEyMjQgMTI1MyAtMTc2NiAxNjcyIC0yMTExIDE5MSAtMTU4IDQwMSAtMjYwIDY4NyAtMzM1IGw5MCAtMjMgMTM4IC0yMDUgYzc3IC0xMTIgMjg1IC00MjEgNDYzIC02ODYgbDMyNCAtNDgxIC02MyAtMTEgYy00NjcgLTgxIC05MDggLTc3IC0xMzUzIDE0IC03NDMgMTUzIC0xMzQ5IDUzNSAtMTkxNCAxMjA5IC0yODggMzQ0IC04MzkgMTExMiAtMTQ0MSAyMDExIC01MDEgNzQ3IC03MzQgMTEzOSAtOTEyIDE1MzUgLTE1NiAzNDUgLTIzNCA2MDQgLTI4MyA5NDUgLTIxIDE0MyAtMjQgNTA1IC02IDY2MCAxMzQgMTEyNiA2ODcgMjAxNyAxNjUyIDI2NjAgNjQ4IDQzMiAxMjU0IDYyNyAyMDIwIDY1MyAzMCAxIDEzMiAtMyAyMjUgLTh6IG00ODYwIC0yNjMwIGM2NzEgLTQxIDEyMTQgLTIzMCAxNjk0IC01OTAgMzUzIC0yNjQgNjM0IC01NjAgMTAxMyAtMTA2NSAzMjEgLTQyOSAxMjE3IC0xNzIxIDEyMTAgLTE3NDYgLTEgLTUgNzggLTEyNSAxNzYgLTI2NyAyNTggLTM3MyAzMzggLTQ5OSA1MTUgLTgxMyAxMTEgLTE5NyAyMzggLTQ3NSAyODcgLTYyOSA0NSAtMTQwIDcxIC0yMjkgNzYgLTI1NCAzIC0xNyAxNCAtNjYgMjUgLTEwOCA1NiAtMjIyIDg0IC01MTQgNzQgLTc2MyAtNCAtODggLTkgLTE2MiAtMTAgLTE2NSAtMyAtNSAtMTUgLTkwIC0zMSAtMjE1IC0zIC0yNyAtMTAgLTcwIC0xNSAtOTUgLTUgLTI1IC0xNCAtNzAgLTE5IC0xMDAgLTMzIC0xNjkgLTE3MSAtNjIwIC0xOTAgLTYyMCAtNSAwIC0xMSAtMTQgLTE1IC0zMCAtNCAtMTcgLTExIC0zMCAtMTYgLTMwIC02IDAgLTggLTMgLTYgLTcgMyAtNSAtMyAtMjQgLTEzIC00MyAtMTEgLTE5IC0yNCAtNDYgLTMwIC02MCAtMTkgLTQ0IC04NSAtMTc1IC05MCAtMTgwIC0zIC0zIC0xMyAtMjEgLTIzIC00MCAtMzQgLTYzIC01MiAtOTUgLTU4IC0xMDAgLTMgLTMgLTE0IC0yMSAtMjUgLTQwIC0xMCAtMTkgLTIxIC0zNyAtMjQgLTQwIC0zIC0zIC0zMSAtNDMgLTYyIC05MCAtNjIgLTk0IC0yNDQgLTMxMiAtMzYxIC00MzQgLTQzIC00NCAtNzcgLTgzIC03NyAtODcgMCAtNCAtNDggLTUwIC0xMDcgLTEwMyAtNTIwIC00NjIgLTExMjUgLTc4OCAtMTcyOCAtOTMxIC02NTggLTE1NiAtMTM2NSAtMTEzIC0yMDA0IDEyMyAtNTAxIDE4NCAtOTg3IDU0OSAtMTQyMSAxMDY2IC0zMTQgMzc0IC03NTYgOTk1IC0xNDQxIDIwMjMgLTQ4NCA3MjcgLTU5MyA4OTkgLTc0NyAxMTg4IC0yNTYgNDgwIC0zODUgODQ5IC00NDggMTI4MCAtMjEgMTQzIC0yNCA1MDUgLTYgNjYwIDg1IDcxMyAzNDAgMTMzNiA3NTggMTg1MiAxMjQgMTUzIDIwMSAyNDAgMjA3IDIzMyAyIC0zIDE4MSAtMjc2IDM5NyAtNjA4IGwzOTMgLTYwNCAtMjIgLTM2IGMtOTIgLTE1NiAtMTY4IC0zMzMgLTIxMCAtNDk0IC00MSAtMTU0IC01MSAtMjQxIC01MSAtNDM1IDAgLTQ2MSAxMjYgLTgyMCA1MjAgLTE0ODQgMzQgLTU3IDY1IC0xMDYgNjkgLTEwOSAzIC0zIDEyIC0xNyAxOCAtMzEgMjcgLTYzIDQ1OCAtNzI0IDcwNiAtMTA4NCA3MjggLTEwNTkgMTA5NiAtMTUxMyAxNDg1IC0xODMzIDE1OSAtMTMxIDMyNSAtMjIwIDU0MSAtMjkxIDIyOSAtNzYgMjkzIC04NSA1NzEgLTg2IDIxMiAwIDI2MSAzIDM2MSAyMyAzMTEgNTkgNTg4IDE3MCA4MzEgMzMzIDE0NiA5OSAzMjUgMjU3IDQ0MCAzOTAgODcgMTAwIDE2OCAyMDQgMTY4IDIxNSAwIDMgMTAgMjAgMjMgMzcgODggMTI0IDIxMSA0MDggMjUyIDU4NCA5IDM3IDIwIDg0IDI1IDEwNCAzNSAxMzEgNDEgNDgxIDEwIDYzNyAtMjYgMTMxIC0xMDIgMzQ3IC0xODggNTMyIC0xNiAzNiAtNDggMTA0IC03MCAxNTEgLTc2IDE2NCAtMzYxIDYzOCAtNDE5IDY5NiAtMTIgMTMgLTgxIDExNiAtMTU0IDIzMCAtNDYxIDcyNiAtMTEwMiAxNjI2IC0xNDc5IDIwNzggLTQxNSA0OTggLTc3NSA3NDYgLTEyMjkgODQ5IC02MiAxMyAtMTE0IDI2IC0xMTYgMjggLTIzIDI4IC04NTUgMTM1MSAtODUyIDEzNTUgMTggMTcgMzIyIDYxIDQ5NyA3MiAxOTcgMTIgMjI4IDEyIDQxNSAxeiIvPiA8L2c+IDwvc3ZnPg==', '55.501' );
 
 			$pages = array();
 
-			if ( ! is_multisite() ) {
+			/*if ( ! is_multisite() ) {*/
 				$pages[] = add_submenu_page( 'codisto', __( 'Marketplace Listings', 'codisto-linq' ), __( 'Marketplace Listings', 'codisto-linq' ), 'edit_posts', 'codisto', array( $this, 'ebay_tab' ) );
 				$pages[] = add_submenu_page( 'codisto', __( 'Marketplace Orders', 'codisto-linq' ), __( 'Marketplace Orders', 'codisto-linq' ), 'edit_posts', 'codisto-orders', array( $this, 'orders' ) );
 				$pages[] = add_submenu_page( 'codisto', __( 'eBay Store Categories', 'codisto-linq' ), __( 'eBay Store Categories', 'codisto-linq' ), 'edit_posts', 'codisto-categories', array( $this, 'categories' ) );
@@ -2555,7 +2556,7 @@ final class CodistoConnect {
 				$pages[] = add_submenu_page( 'codisto', __( 'eBay Templates', 'codisto-linq' ), __( 'eBay Templates', 'codisto-linq' ), 'edit_posts', 'codisto-templates', array( $this, 'templates' ) );
 				$pages[] = add_submenu_page( 'codisto', __( 'Settings', 'codisto-linq' ), __( 'Settings', 'codisto-linq' ), 'edit_posts', 'codisto-settings', array( $this, 'settings' ) );
 				$pages[] = add_submenu_page( 'codisto', __( 'Account', 'codisto-linq' ), __( 'Account', 'codisto-linq' ), 'edit_posts', 'codisto-account', array( $this, 'account' ) );
-			}
+			/*}*/
 
 		}
 	}
